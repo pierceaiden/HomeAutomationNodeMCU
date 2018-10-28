@@ -30,7 +30,7 @@ const int trigPin = 14;           //D5
 const int echoPin = 12;           //D6
 int buzzer = 13;                  //D7
 int delayms=25;
-int flame_sensor = 15;             //D8
+int flame_sensor = 15;            //D8
 int flame = A0;                   //A0
 int flame_val;
 int flame_detected;
