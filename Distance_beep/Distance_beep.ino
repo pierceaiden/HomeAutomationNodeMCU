@@ -25,11 +25,11 @@ void loop()
   Serial.print("cm");
   Serial.println();
   delay(100);
-  if(cm>=3 && cm<=20){
+  if(cm>=3 && cm<=10){
     noTone(buzzerPin);
     beep(cm+10);
   }
-  else if(cm>20 && cm<=200){noTone(buzzerPin);}
+  else if(cm>10 && cm<=200){noTone(buzzerPin);}
   else{
     tone(buzzerPin,1000);
     Serial.print("Collision!!");

@@ -1,17 +1,39 @@
+/*
+Author : Samdharsi Kumar
+
+Make the following connections
+1.Ultrasonic Sensor
+  Echo - D6
+  Trigger - D5
+2.Temperature and Humidity Sensor
+  Data - D1
+3.Buzzer - D7
+4.Relay
+  CH1 - D2
+  CH2 - D3
+5.Flame
+  D0 - D8
+  A0 - A0
+*/
+
 #include <ESP8266WiFi.h>
 #include <dht.h>
 dht DHT;
-#define DHT11_PIN 5
+#define DHT11_PIN 5 //D1
 
 //############## VARIABLE DECLARATION ##############
-const char* ssid = "SAM"; // SSID i.e. Service Set Identifier is the name of your WIFI
-const char* password = "1234556789"; // Your Wifi password, in case you have open network comment the whole statement.
-const int trigPin = 14; //D5
-const int echoPin = 12;  //D6
-int buzzer = 13; //D7
+const char* ssid = "60x"; // SSID i.e. Service Set Identifier is the name of your WIFI
+const char* password = "N@hidunga..!!"; // Your Wifi password, in case you have open network comment the whole statement.
+int switch1 = 4;                  //D2
+int switch2 = 0;                  //D3
+const int trigPin = 14;           //D5
+const int echoPin = 12;           //D6
+int buzzer = 13;                  //D7
 int delayms=25;
-int switch1 = 4; // GPIO4 or for NodeMCU you can directly write D2
-int switch2 = 0; // GPIO0 or for NodeMCU you can directly write D3
+int flame_sensor = 15;             //D8
+int flame = A0;                   //A0
+int flame_val;
+int flame_detected;
 //##################################################
 
 WiFiServer server(80); // Creates a server that listens for incoming connections on the specified port, here in this case port is 80.
@@ -24,8 +46,9 @@ void setup() {
   digitalWrite(switch1, HIGH);
   pinMode(switch2, OUTPUT);
   digitalWrite(switch2, HIGH);
+  pinMode(flame_sensor, INPUT);
 
-  //############## Connect to WiFi network ##############
+//############## Connect to WiFi network ##############
   Serial.println();
   Serial.println();
   Serial.print("Connecting to ");
@@ -39,23 +62,23 @@ void setup() {
   }
   Serial.println("");
   Serial.println("WiFi connected");
-  //#####################################################
+//#####################################################
 
-  //############## Start the server #####################
+//############## Start the server #####################
   server.begin();
   Serial.println("Server started");
-  //#####################################################
+//#####################################################
 
-  //############# Print the IP address ##################
+//############# Print the IP address ##################
   Serial.print("Use this URL to connect: ");
   Serial.print("http://");
   Serial.print(WiFi.localIP()); //Gets the WiFi shield's IP address and Print the IP address of serial monitor
   Serial.println("/");
-  //#####################################################
+//#####################################################
 }
 
 void loop() {
-  //############ ULTRASONIC SENSOR ######################
+//############ ULTRASONIC SENSOR ######################
   long duration,cm;
   pinMode(trigPin, OUTPUT);
   digitalWrite(trigPin, LOW);
@@ -67,38 +90,40 @@ void loop() {
   duration = pulseIn(echoPin, HIGH);
   cm = microsecondsToCentimeters(duration);
   delay(100);
-  if(cm>=3 && cm<=10){
+  if(cm>=5 && cm<=12){
     noTone(buzzer);
     beep(cm+30);
   }
-  else if(cm>10 && cm<=200){noTone(buzzer);}
+  else if(cm<5){
+      tone(buzzer,1000);
+      Serial.println("Collision!!");
+    }
   else{
-    tone(buzzer,1000);
-    Serial.println("Collision!!");
+    noTone(buzzer);
   }
-  //#####################################################
+//#####################################################
 
-  //########## Check if a client has connected ##########
+//########## Check if a client has connected ##########
   WiFiClient client = server.available();
   if (!client) {
     return;
   }
-  //#####################################################
+//#####################################################
 
-  //######## Wait until the client sends some data ######
+//######## Wait until the client sends some data ######
   Serial.println("new client");
   while(!client.available()){
     delay(1);
   }
-  //#####################################################
+//#####################################################
 
-  //######### Read the first line of the request ########
+//######### Read the first line of the request ########
   String request = client.readStringUntil('\r');
   Serial.println(request);
   client.flush();
-  //#####################################################
+//#####################################################
 
-  //#################### SWITCH 1 #######################
+//#################### SWITCH 1 #######################
   int value1,value2,master;
   if (request.indexOf("/CH1=ON") != -1)  {
     digitalWrite(switch1, LOW);
@@ -108,9 +133,9 @@ void loop() {
     digitalWrite(switch1, HIGH);
     value1 = HIGH;
   }
-  //#####################################################
+//#####################################################
 
-  //#################### SWITCH 2 #######################
+//#################### SWITCH 2 #######################
   if (request.indexOf("/CH2=ON") != -1)  {
     digitalWrite(switch2, LOW);
     value2 = LOW;
@@ -119,9 +144,9 @@ void loop() {
     digitalWrite(switch2, HIGH);
     value2 = HIGH;
   }
-  //#####################################################
+//#####################################################
 
-  //#################### MASTER #########################
+//#################### MASTER #########################
   if (request.indexOf("/MASTER=ON") != -1)  {
     digitalWrite(switch1, LOW);
     digitalWrite(switch2, LOW);
@@ -136,9 +161,9 @@ void loop() {
     value2 = HIGH;
     master = HIGH;
   }
-  //#####################################################
+//#####################################################
 
-  //############### SERIAL OUTPUT #######################
+//############### SERIAL OUTPUT #######################
   int chk = DHT.read11(DHT11_PIN);
   Serial.print("Temperature = ");
   Serial.println(DHT.temperature);
@@ -146,15 +171,21 @@ void loop() {
   Serial.println(DHT.humidity);
   Serial.print("Distance = ");
   Serial.println(cm);
+  flame_val = analogRead(A0);
+  Serial.print("Flame value = ");
+  Serial.println(flame_val);
+  flame_detected = digitalRead(flame_sensor);
+  Serial.print("Flame detected = ");
+  Serial.println(flame_detected);
   /*
   Serial.print("Distance: ");
   Serial.print(cm);
   Serial.print("cm");
   Serial.println();
   */
-  //#####################################################
+//#####################################################
 
-  //################ HTML WEB PAGE ######################
+//################ HTML WEB PAGE ######################
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html");
   client.println(""); //  do not forget this one
@@ -167,14 +198,23 @@ void loop() {
   client.println("<br><br>");
   client.println("<b>Temperature = </b>");
   client.println(DHT.temperature);
+  client.println("<b> *C</b>");
   client.println("<br><br>");
   client.println("<b>Humidity = </b>");
   client.println(DHT.humidity);
+  client.println("<b> %</b>");
   client.println("<br><br>");
   client.println("<b>Distance = </b>");
   client.println(cm);
+  client.println("<b> cm</b>");
+  client.println("<br><br>");
+  client.println("<b>Flame Value = </b>");
+  client.println(flame_val);
+  client.println("<br><br>");
+  client.println("<b>Flame detected = </b>");
+  client.println(flame_detected);
   
-  //################### SWITCH 1 ########################
+//################### SWITCH 1 ########################
   client.println("<br><br>");
   client.println("Switch 1: <a href=\"/CH1=ON\"\"><button>Turn On </button></a>");
   client.println("<a href=\"/CH1=OFF\"\"><button>Turn Off </button></a>");
@@ -184,9 +224,9 @@ void loop() {
   else if(value1 == HIGH){
     client.print("SWITCH 1 OFF<br><br>");
   }
-  //#####################################################
+//#####################################################
 
-  //################### SWITCH 2 ########################
+//################### SWITCH 2 ########################
   client.println("<br><br>");
   client.println("Switch 2: <a href=\"/CH2=ON\"\"><button>Turn On </button></a>");
   client.println("<a href=\"/CH2=OFF\"\"><button>Turn Off </button></a>");
@@ -196,9 +236,9 @@ void loop() {
   else if(value2 == HIGH){
     client.print("SWITCH 2 OFF<br><br>");
   }
-  //#####################################################
+//#####################################################
 
-  //##################### MASTER ########################
+//##################### MASTER ########################
   client.println("<br><br>");
   client.println("Master: <a href=\"/MASTER=ON\"\"><button>Turn On </button></a>");
   client.println("<a href=\"/MASTER=OFF\"\"><button>Turn Off </button></a>");
@@ -208,9 +248,9 @@ void loop() {
   else if(master == HIGH){
     client.print("Master OFF<br><br>");
   }
-  //#####################################################
+//#####################################################
   client.println("</html>");
-  //#####################################################
+//################ WEB PAGE ENDS ######################
 
   delay(1);
   Serial.println("Client disconnected");
