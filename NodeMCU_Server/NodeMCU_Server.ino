@@ -22,8 +22,8 @@ dht DHT;
 #define DHT11_PIN 5 //D1
 
 //############## VARIABLE DECLARATION ##############
-const char* ssid = "60x"; // SSID i.e. Service Set Identifier is the name of your WIFI
-const char* password = "N@hidunga..!!"; // Your Wifi password, in case you have open network comment the whole statement.
+const char* ssid = "SAM"; // SSID i.e. Service Set Identifier is the name of your WIFI
+const char* password = "1234556789"; // Your Wifi password, in case you have open network comment the whole statement.
 int switch1 = 4;                  //D2
 int switch2 = 0;                  //D3
 const int trigPin = 14;           //D5
@@ -213,7 +213,7 @@ void loop() {
   client.println("<br><br>");
   client.println("<b>Flame detected = </b>");
   client.println(flame_detected);
-  
+
 //################### SWITCH 1 ########################
   client.println("<br><br>");
   client.println("Switch 1: <a href=\"/CH1=ON\"\"><button>Turn On </button></a>");
@@ -270,4 +270,3 @@ void beep(unsigned char delayms) { //creating function
   delay(delayms); //Delaying
 }
 //#######################################################
-
